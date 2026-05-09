@@ -26,14 +26,8 @@
             min-height: 100vh;
         }
 
-        h1 {
-            letter-spacing: 15px;
-            font-weight: 400;
-            margin-bottom: 30px;
-            text-shadow: 0 0 10px rgba(255,255,255,0.1);
-        }
+        h1 { letter-spacing: 15px; font-weight: 400; margin-bottom: 30px; }
 
-        /* 한지 느낌의 보드 컨테이너 */
         .board-container {
             padding: 30px;
             background-color: var(--board-bg);
@@ -41,7 +35,6 @@
             border: 10px solid #5d4037;
             box-shadow: 0 20px 60px rgba(0,0,0,0.7);
             position: relative;
-            border-radius: 2px;
         }
 
         .board {
@@ -49,7 +42,6 @@
             grid-template-columns: repeat(10, var(--cell-size));
             grid-template-rows: repeat(5, var(--cell-size));
             border: 1px solid var(--line-color);
-            position: relative;
         }
 
         .cell {
@@ -60,35 +52,43 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            box-sizing: border-box;
         }
 
-        /* 수묵화 유닛 스타일 */
         .unit {
             font-size: 40px;
             color: var(--ink-color);
             filter: blur(0.4px) contrast(1.2);
             user-select: none;
-            cursor: default;
             z-index: 2;
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* 편집 모드 스타일 */
+        /* 아이콘 선택 팔레트 */
+        #palette {
+            position: absolute;
+            display: none;
+            background: rgba(234, 205, 163, 0.95);
+            border: 2px solid #5d4037;
+            padding: 10px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            z-index: 100;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            border-radius: 5px;
+        }
+
+        .palette-item {
+            font-size: 30px;
+            cursor: pointer;
+            padding: 5px;
+            transition: transform 0.2s;
+        }
+
+        .palette-item:hover { transform: scale(1.2); background: rgba(0,0,0,0.1); }
+
         .editable .cell { cursor: pointer; }
         .editable .cell:hover { background-color: rgba(0, 0, 0, 0.05); }
 
-        /* 하단 컨트롤 */
-        .controls {
-            margin-top: 40px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .btn-group { display: flex; gap: 10px; justify-content: center; }
-
+        .controls { margin-top: 40px; text-align: center; }
         .btn {
             padding: 12px 35px;
             cursor: pointer;
@@ -96,32 +96,9 @@
             background: transparent;
             color: #eacda3;
             font-family: 'Noto Serif KR', serif;
-            font-size: 16px;
-            transition: all 0.3s;
+            margin: 5px;
         }
-
-        .btn:hover { background: #eacda3; color: #1a1a1a; }
         .btn.active { background: #8d6e63; color: white; }
-
-        .info-text {
-            font-size: 14px;
-            color: #888;
-            line-height: 1.6;
-        }
-
-        /* 공유 팝업 느낌 알림 */
-        #toast {
-            position: fixed;
-            bottom: 20px;
-            background: rgba(141, 110, 99, 0.9);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            display: none;
-            animation: fadeIn 0.5s;
-        }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -130,114 +107,105 @@
 
     <div class="board-container">
         <div id="board" class="board"></div>
+        <!-- 팔레트 UI -->
+        <div id="palette"></div>
     </div>
 
     <div class="controls">
-        <div class="btn-group">
-            <button id="editBtn" class="btn" onclick="toggleEdit()">붓 들기 (편집)</button>
-            <button id="shareBtn" class="btn" onclick="copyShareLink()">링크 복사</button>
-        </div>
-        <div class="info-text">
-            <b>편집 모드:</b> 좌클릭으로 유닛 순환, 우클릭으로 삭제<br>
-            링크를 복사해 다른 사람에게 현재 배치를 공유하세요.
-        </div>
+        <button id="editBtn" class="btn" onclick="toggleEdit()">붓 들기 (편집)</button>
+        <button class="btn" onclick="copyShareLink()">링크 복사</button>
     </div>
-
-    <div id="toast">링크가 클립보드에 복사되었습니다!</div>
 
     <script>
         const board = document.getElementById('board');
+        const palette = document.getElementById('palette');
         const editBtn = document.getElementById('editBtn');
-        const toast = document.getElementById('toast');
         let isEditable = false;
+        let selectedCell = null;
 
-        // 수묵화 테마 유닛 (인덱스 0~6)
-        const units = ["🐉", "🐅", "🦅", "🐎", "🎋", "⛰️", "🌙"]; 
+        const units = ["🐉", "🐅", "🦅", "🐎", "🎋", "⛰️", "🌙", "🔥", "🌊", "🌬️"]; 
 
-        // 1. 보드 생성
-        function createBoard() {
+        // 1. 보드 및 팔레트 생성
+        function init() {
+            // 보드 생성
             for (let i = 0; i < 50; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 cell.dataset.index = i;
-                
-                // 좌클릭: 유닛 배치/순환
-                cell.addEventListener('click', () => {
-                    if (!isEditable) return;
-                    cycleUnit(cell);
-                    updateURL(); // 실시간 주소 업데이트
-                });
-
-                // 우클릭: 유닛 삭제
+                cell.addEventListener('click', (e) => openPalette(e, cell));
                 cell.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
-                    if (!isEditable) return;
-                    cell.innerHTML = "";
-                    updateURL();
+                    if (isEditable) { cell.innerHTML = ""; updateURL(); }
                 });
-
                 board.appendChild(cell);
             }
+
+            // 팔레트 아이템 생성
+            units.forEach(u => {
+                const item = document.createElement('div');
+                item.className = 'palette-item';
+                item.innerText = u;
+                item.onclick = () => selectUnit(u);
+                palette.appendChild(item);
+            });
+            
+            // 지우개 추가
+            const eraser = document.createElement('div');
+            eraser.className = 'palette-item';
+            eraser.innerText = "✖️";
+            eraser.onclick = () => selectUnit("");
+            palette.appendChild(eraser);
         }
 
-        function cycleUnit(cell) {
-            const currentUnit = cell.querySelector('.unit');
-            let nextIdx = 0;
+        function openPalette(e, cell) {
+            if (!isEditable) return;
+            selectedCell = cell;
+            palette.style.display = 'grid';
+            palette.style.left = e.pageX - board.getBoundingClientRect().left + 'px';
+            palette.style.top = e.pageY - board.getBoundingClientRect().top + 'px';
+        }
 
-            if (currentUnit) {
-                const currentIdx = units.indexOf(currentUnit.innerText);
-                nextIdx = currentIdx + 1;
-                cell.innerHTML = "";
-            }
-
-            if (nextIdx < units.length) {
-                const span = document.createElement('span');
-                span.className = 'unit';
-                span.innerText = units[nextIdx];
-                cell.appendChild(span);
+        function selectUnit(u) {
+            if (selectedCell) {
+                selectedCell.innerHTML = u ? `<span class="unit">${u}</span>` : "";
+                palette.style.display = 'none';
+                updateURL();
             }
         }
 
-        // 2. 편집 모드 토글
+        // 팔레트 외 영역 클릭 시 닫기
+        window.addEventListener('click', (e) => {
+            if (!e.target.closest('.cell') && !e.target.closest('#palette')) {
+                palette.style.display = 'none';
+            }
+        });
+
         function toggleEdit() {
             isEditable = !isEditable;
             board.classList.toggle('editable', isEditable);
             editBtn.innerText = isEditable ? "낙관 찍기 (완료)" : "붓 들기 (편집)";
             editBtn.classList.toggle('active', isEditable);
-            
-            if (!isEditable) {
-                showToast("배치가 저장되었습니다.");
-                updateURL();
-            }
+            if (!isEditable) palette.style.display = 'none';
         }
 
-        // 3. URL 파라미터로 상태 저장
         function updateURL() {
             const cells = document.querySelectorAll('.cell');
             const data = Array.from(cells).map(cell => {
                 const unit = cell.querySelector('.unit');
                 return unit ? units.indexOf(unit.innerText) : '.';
             }).join('');
-            
             const newUrl = window.location.origin + window.location.pathname + '?map=' + data;
             window.history.replaceState({}, '', newUrl);
         }
 
-        // 4. URL에서 데이터 불러오기
         function loadBoardFromURL() {
             const params = new URLSearchParams(window.location.search);
             const mapData = params.get('map');
-            
             if (mapData) {
                 const cells = document.querySelectorAll('.cell');
-                const dataArray = mapData.split('');
-                
-                dataArray.forEach((char, i) => {
-                    if (char !== '.' && units[char] && cells[i]) {
-                        const span = document.createElement('span');
-                        span.className = 'unit';
-                        span.innerText = units[char];
-                        cells[i].appendChild(span);
+                mapData.split('').forEach((char, i) => {
+                    if (char !== '.' && units[char]) {
+                        cells[i].innerHTML = `<span class="unit">${units[char]}</span>`;
                     }
                 });
             }
@@ -246,17 +214,10 @@
         function copyShareLink() {
             updateURL();
             navigator.clipboard.writeText(window.location.href);
-            showToast("공유 링크가 복사되었습니다!");
+            alert("공유 링크가 복사되었습니다!");
         }
 
-        function showToast(msg) {
-            toast.innerText = msg;
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 2000);
-        }
-
-        // 초기화 실행
-        createBoard();
+        init();
         loadBoardFromURL();
     </script>
 </body>
