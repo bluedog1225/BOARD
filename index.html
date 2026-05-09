@@ -1,22 +1,160 @@
-// 기존 units 배열을 동양풍 이모지/이미지로 변경
-const units = ["⚔️", "🛡️", "🏹", "🐴", "🏯", "🏮", "📜"]; // 예시 동양풍 아이템
-
-for (let i = 0; i < 50; i++) {
-    // ... (보드 생성 코드는 동일) ...
-
-    cell.addEventListener('click', () => {
-        if (!isEditable) return;
-
-        // 현재 칸에 이미 아이콘이 있다면?
-        if (cell.innerHTML !== "") {
-            cell.innerHTML = ""; // 일단 지우고
-        } else {
-            // 새 유닛 배치 (여기서는 예시로 첫 번째 유닛 배치)
-            // 실제 이미지 파일이 있다면: cell.innerHTML = '<img src="path/to/icon.png" class="unit-img">';
-            const unit = units[0]; // 실제로는 선택하는 UI가 필요합니다.
-            cell.innerHTML = `<span class="unit-icon">${unit}</span>`;
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>수묵화 전략 보드</title>
+    <style>
+        :root {
+            --board-bg: #eacda3; /* 좀 더 밝은 한지 느낌의 나무색 */
+            --line-color: rgba(42, 35, 28, 0.8);
+            --cell-size: 70px;
+            --ink-color: #1a1a1a; /* 진한 먹색 */
         }
-    });
 
-    // ...
-}
+        body {
+            background-color: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #dcdcdc;
+            font-family: 'Noto Serif KR', serif;
+            margin-top: 40px;
+        }
+
+        /* 한지 질감 효과를 위한 컨테이너 */
+        .board-container {
+            padding: 30px;
+            background-color: var(--board-bg);
+            background-image: url('https://www.transparenttextures.com/patterns/papyrus-dark.png'); /* 한지 질감 */
+            border: 12px solid #5d4037;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, var(--cell-size));
+            grid-template-rows: repeat(5, var(--cell-size));
+            border: 1px solid var(--line-color);
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            border: 0.5px solid var(--line-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: default;
+            position: relative;
+        }
+
+        /* 수묵화 유닛 스타일 */
+        .unit {
+            font-size: 40px;
+            color: var(--ink-color);
+            filter: blur(0.3px) contrast(1.2); /* 미세한 번짐 효과 */
+            user-select: none;
+            transition: all 0.5s ease-out;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            font-family: 'cursive'; /* 붓글씨 느낌 */
+        }
+
+        /* 편집 모드 표시 */
+        .editable .cell:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+        }
+
+        /* 컨트롤 영역 */
+        .controls { margin-top: 30px; text-align: center; }
+        .btn {
+            padding: 10px 30px;
+            cursor: pointer;
+            border: 1px solid #5d4037;
+            background: transparent;
+            color: #eacda3;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .btn:hover { background: #eacda3; color: #1a1a1a; }
+        .btn.active { background: #8d6e63; color: white; border-color: #8d6e63; }
+
+        .legend { margin-top: 15px; font-style: italic; color: #888; }
+    </style>
+    <!-- 구글 폰트에서 붓글씨 느낌의 서체 가져오기 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <h1 style="letter-spacing: 10px; font-weight: 400;">戰略圖 (전략도)</h1>
+
+    <div class="board-container">
+        <div id="board" class="board"></div>
+    </div>
+
+    <div class="controls">
+        <button id="editBtn" class="btn" onclick="toggleEdit()">붓 들기 (편집)</button>
+        <div class="legend">
+            좌클릭으로 배치, 우클릭으로 지우기
+        </div>
+    </div>
+
+    <script>
+        const board = document.getElementById('board');
+        const editBtn = document.getElementById('editBtn');
+        let isEditable = false;
+
+        // 수묵화 느낌의 상징물 (이모지를 사용하되 CSS로 먹물 느낌을 줌)
+        // 나중에 진짜 수묵화 PNG 이미지가 있다면 'images/tiger.png' 등으로 교체 가능합니다.
+        const units = ["🐉", "🐅", "🦅", "🐎", "🎋", "⛰️", "🌙"]; 
+
+        for (let i = 0; i < 50; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            
+            cell.addEventListener('click', () => {
+                if (!isEditable) return;
+                
+                const currentUnit = cell.querySelector('.unit');
+                let nextIdx = 0;
+
+                if (currentUnit) {
+                    const currentIdx = units.indexOf(currentUnit.innerText);
+                    nextIdx = currentIdx + 1;
+                    cell.innerHTML = "";
+                }
+
+                if (nextIdx < units.length) {
+                    const span = document.createElement('span');
+                    span.className = 'unit';
+                    span.innerText = units[nextIdx];
+                    // 나타날 때 먹 번짐 애니메이션 효과
+                    span.style.opacity = "0";
+                    span.style.transform = "scale(1.5)";
+                    cell.appendChild(span);
+                    
+                    setTimeout(() => {
+                        span.style.opacity = "1";
+                        span.style.transform = "scale(1)";
+                    }, 10);
+                }
+            });
+
+            cell.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (isEditable) cell.innerHTML = "";
+            });
+
+            board.appendChild(cell);
+        }
+
+        function toggleEdit() {
+            isEditable = !isEditable;
+            board.classList.toggle('editable', isEditable);
+            editBtn.innerText = isEditable ? "낙관 찍기 (완료)" : "붓 들기 (편집)";
+            editBtn.classList.toggle('active', isEditable);
+        }
+    </script>
+</body>
+</html>
