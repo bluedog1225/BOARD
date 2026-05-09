@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>수묵전략도 (水墨戰略圖)</title>
+    <title>수묵전략도 (三才)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap');
 
@@ -55,35 +55,40 @@
         }
 
         .unit {
-            font-size: 40px;
+            font-size: 35px;
             color: var(--ink-color);
             filter: blur(0.4px) contrast(1.2);
             user-select: none;
             z-index: 2;
         }
 
-        /* 아이콘 선택 팔레트 */
+        /* 아이콘 선택 팔레트 (3개 전용) */
         #palette {
             position: absolute;
             display: none;
-            background: rgba(234, 205, 163, 0.95);
+            background: rgba(234, 205, 163, 0.98);
             border: 2px solid #5d4037;
-            padding: 10px;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
+            padding: 15px;
+            grid-template-columns: repeat(4, 1fr); /* 3개 + 지우개 */
+            gap: 15px;
             z-index: 100;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-            border-radius: 5px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            border-radius: 8px;
         }
 
         .palette-item {
-            font-size: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             cursor: pointer;
             padding: 5px;
             transition: transform 0.2s;
         }
+        
+        .palette-item span { font-size: 32px; }
+        .palette-item label { font-size: 10px; color: #5d4037; margin-top: 5px; cursor: pointer; }
 
-        .palette-item:hover { transform: scale(1.2); background: rgba(0,0,0,0.1); }
+        .palette-item:hover { transform: scale(1.1); background: rgba(0,0,0,0.05); }
 
         .editable .cell { cursor: pointer; }
         .editable .cell:hover { background-color: rgba(0, 0, 0, 0.05); }
@@ -103,11 +108,10 @@
 </head>
 <body>
 
-    <h1>戰略圖 (전략도)</h1>
+    <h1>三才圖 (삼재도)</h1>
 
     <div class="board-container">
         <div id="board" class="board"></div>
-        <!-- 팔레트 UI -->
         <div id="palette"></div>
     </div>
 
@@ -123,11 +127,14 @@
         let isEditable = false;
         let selectedCell = null;
 
-        const units = ["🐉", "🐅", "🦅", "🐎", "🎋", "⛰️", "🌙", "🔥", "🌊", "🌬️"]; 
+        // 아이콘 종류를 3개로 압축
+        const units = [
+            { icon: "🛡️", label: "방패" },
+            { icon: "⚔️", label: "검" },
+            { icon: "🍑", label: "복숭아" }
+        ]; 
 
-        // 1. 보드 및 팔레트 생성
         function init() {
-            // 보드 생성
             for (let i = 0; i < 50; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
@@ -140,19 +147,19 @@
                 board.appendChild(cell);
             }
 
-            // 팔레트 아이템 생성
-            units.forEach(u => {
+            // 팔레트 아이콘 구성
+            units.forEach((u, index) => {
                 const item = document.createElement('div');
                 item.className = 'palette-item';
-                item.innerText = u;
-                item.onclick = () => selectUnit(u);
+                item.innerHTML = `<span>${u.icon}</span><label>${u.label}</label>`;
+                item.onclick = () => selectUnit(u.icon);
                 palette.appendChild(item);
             });
             
-            // 지우개 추가
+            // 지우개
             const eraser = document.createElement('div');
             eraser.className = 'palette-item';
-            eraser.innerText = "✖️";
+            eraser.innerHTML = `<span>✖️</span><label>지우기</label>`;
             eraser.onclick = () => selectUnit("");
             palette.appendChild(eraser);
         }
@@ -161,8 +168,11 @@
             if (!isEditable) return;
             selectedCell = cell;
             palette.style.display = 'grid';
-            palette.style.left = e.pageX - board.getBoundingClientRect().left + 'px';
-            palette.style.top = e.pageY - board.getBoundingClientRect().top + 'px';
+            
+            // 클릭 위치 근처에 팔레트 배치
+            const rect = board.getBoundingClientRect();
+            palette.style.left = (e.pageX - window.pageXOffset - rect.left) + 'px';
+            palette.style.top = (e.pageY - window.pageYOffset - rect.top) + 'px';
         }
 
         function selectUnit(u) {
@@ -173,7 +183,6 @@
             }
         }
 
-        // 팔레트 외 영역 클릭 시 닫기
         window.addEventListener('click', (e) => {
             if (!e.target.closest('.cell') && !e.target.closest('#palette')) {
                 palette.style.display = 'none';
@@ -190,9 +199,10 @@
 
         function updateURL() {
             const cells = document.querySelectorAll('.cell');
+            const iconsOnly = units.map(u => u.icon);
             const data = Array.from(cells).map(cell => {
                 const unit = cell.querySelector('.unit');
-                return unit ? units.indexOf(unit.innerText) : '.';
+                return unit ? iconsOnly.indexOf(unit.innerText) : '.';
             }).join('');
             const newUrl = window.location.origin + window.location.pathname + '?map=' + data;
             window.history.replaceState({}, '', newUrl);
@@ -201,11 +211,12 @@
         function loadBoardFromURL() {
             const params = new URLSearchParams(window.location.search);
             const mapData = params.get('map');
+            const iconsOnly = units.map(u => u.icon);
             if (mapData) {
                 const cells = document.querySelectorAll('.cell');
                 mapData.split('').forEach((char, i) => {
-                    if (char !== '.' && units[char]) {
-                        cells[i].innerHTML = `<span class="unit">${units[char]}</span>`;
+                    if (char !== '.' && iconsOnly[char]) {
+                        cells[i].innerHTML = `<span class="unit">${iconsOnly[char]}</span>`;
                     }
                 });
             }
@@ -214,7 +225,7 @@
         function copyShareLink() {
             updateURL();
             navigator.clipboard.writeText(window.location.href);
-            alert("공유 링크가 복사되었습니다!");
+            alert("공유 링크가 클립보드에 복사되었습니다!");
         }
 
         init();
