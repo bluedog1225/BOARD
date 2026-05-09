@@ -4,62 +4,124 @@
     <meta charset="UTF-8">
     <title>전략 배치 보드</title>
     <style>
-        :root { --cell-size: 60px; }
+        :root { 
+            --cell-size: 60px;
+            --board-color: #2c3e50;
+        }
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f2f5; }
+        
         .board {
             display: grid;
             grid-template-columns: repeat(10, var(--cell-size));
             grid-template-rows: repeat(5, var(--cell-size));
             gap: 2px;
-            background-color: #444;
+            background-color: var(--board-color);
             padding: 10px;
-            width: max-content;
-            margin: 20px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
+
         .cell {
             width: var(--cell-size);
             height: var(--cell-size);
-            background-color: #eee;
+            background-color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
+            cursor: default;
             font-size: 30px;
+            transition: background 0.2s;
+            user-select: none; /* 텍스트 선택 방지 */
         }
-        .controls { text-align: center; margin-top: 20px; }
+
+        /* 편집 모드일 때의 스타일 */
+        .editable .cell { cursor: pointer; }
+        .editable .cell:hover { background-color: #ecf0f1; }
+
+        .controls { margin-top: 20px; text-align: center; }
+        .btn {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        .btn.active { background: #e74c3c; }
+        .info { font-size: 0.9rem; color: #666; margin-top: 10px; }
     </style>
 </head>
 <body>
 
+    <h2>전략 시뮬레이션 보드 (10x5)</h2>
+
     <div id="board" class="board"></div>
 
     <div class="controls">
-        <p>편집 모드: <span id="mode-status">조회 중</span></p>
-        <button onclick="toggleEdit()">편집 모드 전환 (나 전용)</button>
+        <button id="editBtn" class="btn" onclick="toggleEdit()">편집 모드 시작</button>
+        <div class="info">
+            <strong>편집 모드 가이드:</strong><br>
+            좌클릭: 유닛 배치 | <b>우클릭: 아이콘 삭제</b>
+        </div>
     </div>
 
     <script>
         const board = document.getElementById('board');
+        const editBtn = document.getElementById('editBtn');
         let isEditable = false;
 
-        // 10*5 보드 생성
+        // 1. 10*5 보드 초기화
         for (let i = 0; i < 50; i++) {
             const cell = document.createElement('div');
             cell.className = 'cell';
-            cell.dataset.index = i;
-            cell.onclick = () => placeUnit(cell);
+            
+            // 좌클릭 이벤트 (배치)
+            cell.addEventListener('click', () => placeUnit(cell));
+            
+            // 우클릭 이벤트 (삭제)
+            cell.addEventListener('contextmenu', (e) => {
+                e.preventDefault(); // 기본 메뉴 방지
+                removeUnit(cell);
+            });
+
             board.appendChild(cell);
         }
 
         function toggleEdit() {
-            // 실제로는 여기서 비밀번호 확인 절차를 넣을 수 있습니다.
             isEditable = !isEditable;
-            document.getElementById('mode-status').innerText = isEditable ? "편집 가능" : "조회 중";
+            board.classList.toggle('editable', isEditable);
+            editBtn.innerText = isEditable ? "편집 완료 (저장)" : "편집 모드 시작";
+            editBtn.classList.toggle('active', isEditable);
+            
+            if (!isEditable) {
+                console.log("현재 배치 데이터:", getBoardData());
+                alert("배치가 완료되었습니다. (데이터는 콘솔창에서 확인 가능)");
+            }
         }
 
         function placeUnit(cell) {
             if (!isEditable) return;
-            // 예시: 클릭할 때마다 아이콘 변경 (실제로는 선택창을 띄울 수 있음)
-            cell.innerText = cell.innerText === "🛡️" ? "⚔️" : "🛡️";
+            // 예시 아이콘 순환 (🛡️ -> ⚔️ -> 🔥 -> 삭제)
+            const units = ["🛡️", "⚔️", "🔥", "🏰"];
+            const current = cell.innerText;
+            const nextIndex = units.indexOf(current) + 1;
+            
+            if (nextIndex >= units.length) {
+                cell.innerText = ""; // 마지막 순서면 삭제
+            } else {
+                cell.innerText = units[nextIndex];
+            }
+        }
+
+        function removeUnit(cell) {
+            if (!isEditable) return;
+            cell.innerText = ""; // 아이콘 없애기
+        }
+
+        // 현재 보드의 상태를 데이터로 추출 (나중에 공유 기능 만들 때 사용)
+        function getBoardData() {
+            return Array.from(document.querySelectorAll('.cell')).map(c => c.innerText);
         }
     </script>
 </body>
