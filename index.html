@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>전략 배치 보드</title>
+    <style>
+        :root { --cell-size: 60px; }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, var(--cell-size));
+            grid-template-rows: repeat(5, var(--cell-size));
+            gap: 2px;
+            background-color: #444;
+            padding: 10px;
+            width: max-content;
+            margin: 20px auto;
+        }
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            background-color: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 30px;
+        }
+        .controls { text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="board" class="board"></div>
+
+    <div class="controls">
+        <p>편집 모드: <span id="mode-status">조회 중</span></p>
+        <button onclick="toggleEdit()">편집 모드 전환 (나 전용)</button>
+    </div>
+
+    <script>
+        const board = document.getElementById('board');
+        let isEditable = false;
+
+        // 10*5 보드 생성
+        for (let i = 0; i < 50; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.index = i;
+            cell.onclick = () => placeUnit(cell);
+            board.appendChild(cell);
+        }
+
+        function toggleEdit() {
+            // 실제로는 여기서 비밀번호 확인 절차를 넣을 수 있습니다.
+            isEditable = !isEditable;
+            document.getElementById('mode-status').innerText = isEditable ? "편집 가능" : "조회 중";
+        }
+
+        function placeUnit(cell) {
+            if (!isEditable) return;
+            // 예시: 클릭할 때마다 아이콘 변경 (실제로는 선택창을 띄울 수 있음)
+            cell.innerText = cell.innerText === "🛡️" ? "⚔️" : "🛡️";
+        }
+    </script>
+</body>
+</html>
