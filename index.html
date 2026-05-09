@@ -2,67 +2,107 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>전략 배치 보드</title>
+    <title>전략 장기 보드</title>
     <style>
-        :root { 
-            --cell-size: 60px;
-            --board-color: #2c3e50;
+        :root {
+            --board-bg: #e3b06b; /* 장기판 특유의 나무 색상 */
+            --line-color: #4a3219; /* 진한 나무색 선 */
+            --cell-size: 70px;
         }
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f2f5; }
-        
+
+        body {
+            background-color: #2c2c2c;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #fff;
+            font-family: 'Noto Sans KR', sans-serif;
+            margin-top: 50px;
+        }
+
+        /* 장기판 본체 */
+        .board-container {
+            padding: 20px;
+            background-color: var(--board-bg);
+            border: 5px solid #8b5a2b;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 4px;
+            position: relative;
+        }
+
         .board {
             display: grid;
             grid-template-columns: repeat(10, var(--cell-size));
             grid-template-rows: repeat(5, var(--cell-size));
-            gap: 2px;
-            background-color: var(--board-color);
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            background-image: 
+                linear-gradient(var(--line-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--line-color) 1px, transparent 1px);
+            background-size: var(--cell-size) var(--cell-size);
+            border-right: 1px solid var(--line-color);
+            border-bottom: 1px solid var(--line-color);
         }
 
         .cell {
             width: var(--cell-size);
             height: var(--cell-size);
-            background-color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 40px;
             cursor: default;
-            font-size: 30px;
+            position: relative;
             transition: background 0.2s;
-            user-select: none; /* 텍스트 선택 방지 */
         }
 
-        /* 편집 모드일 때의 스타일 */
+        /* 편집 모드일 때 효과 */
         .editable .cell { cursor: pointer; }
-        .editable .cell:hover { background-color: #ecf0f1; }
+        .editable .cell:hover { background-color: rgba(255, 255, 255, 0.2); }
 
-        .controls { margin-top: 20px; text-align: center; }
+        /* 장기판 특유의 X자 (궁) 표시 - 임의로 양 끝 중앙에 배치 */
+        .cell.palace-center::before,
+        .cell.palace-center::after {
+            content: "";
+            position: absolute;
+            width: 141%; /* 대각선 길이 */
+            height: 1px;
+            background-color: var(--line-color);
+            top: 50%;
+            left: 50%;
+            z-index: 0;
+        }
+        .cell.palace-center::before { transform: translate(-50%, -50%) rotate(45deg); }
+        .cell.palace-center::after { transform: translate(-50%, -50%) rotate(-45deg); }
+
+        .controls { margin-top: 30px; text-align: center; }
         .btn {
-            padding: 10px 20px;
+            padding: 12px 24px;
             cursor: pointer;
             border: none;
-            border-radius: 5px;
-            background: #3498db;
+            border-radius: 4px;
+            background: #8b5a2b;
             color: white;
             font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px #5d3d1d;
         }
-        .btn.active { background: #e74c3c; }
-        .info { font-size: 0.9rem; color: #666; margin-top: 10px; }
+        .btn:active { transform: translateY(2px); box-shadow: 0 2px #5d3d1d; }
+        .btn.active { background: #d35400; box-shadow: 0 4px #a04000; }
+        
+        .legend { margin-top: 15px; font-size: 14px; color: #aaa; }
     </style>
 </head>
 <body>
 
-    <h2>전략 시뮬레이션 보드 (10x5)</h2>
+    <h2>전략 배치도 (木)</h2>
 
-    <div id="board" class="board"></div>
+    <div class="board-container">
+        <div id="board" class="board"></div>
+    </div>
 
     <div class="controls">
         <button id="editBtn" class="btn" onclick="toggleEdit()">편집 모드 시작</button>
-        <div class="info">
-            <strong>편집 모드 가이드:</strong><br>
-            좌클릭: 유닛 배치 | <b>우클릭: 아이콘 삭제</b>
+        <div class="legend">
+            <b>좌클릭:</b> 유닛 순환 | <b>우클릭:</b> 삭제 (나만 가능)
         </div>
     </div>
 
@@ -71,18 +111,29 @@
         const editBtn = document.getElementById('editBtn');
         let isEditable = false;
 
-        // 1. 10*5 보드 초기화
+        // 유닛 목록 (한자 느낌이나 장기말 느낌의 이모지)
+        const units = ["楚", "漢", "兵", "卒", "車", "包", "馬"];
+
         for (let i = 0; i < 50; i++) {
             const cell = document.createElement('div');
             cell.className = 'cell';
             
-            // 좌클릭 이벤트 (배치)
-            cell.addEventListener('click', () => placeUnit(cell));
-            
-            // 우클릭 이벤트 (삭제)
+            // 10x5에서 양쪽 중앙에 X자(궁) 표시 추가 (2,1 칸과 7,1 칸 근처)
+            if (i === 11 || i === 18) {
+                cell.classList.add('palace-center');
+            }
+
+            cell.addEventListener('click', () => {
+                if (!isEditable) return;
+                const currentIdx = units.indexOf(cell.innerText);
+                const nextIdx = currentIdx + 1;
+                cell.innerText = nextIdx >= units.length ? "" : units[nextIdx];
+                cell.style.color = (cell.innerText === "楚" || cell.innerText === "卒") ? "#003399" : "#cc0000";
+            });
+
             cell.addEventListener('contextmenu', (e) => {
-                e.preventDefault(); // 기본 메뉴 방지
-                removeUnit(cell);
+                e.preventDefault();
+                if (isEditable) cell.innerText = "";
             });
 
             board.appendChild(cell);
@@ -91,37 +142,8 @@
         function toggleEdit() {
             isEditable = !isEditable;
             board.classList.toggle('editable', isEditable);
-            editBtn.innerText = isEditable ? "편집 완료 (저장)" : "편집 모드 시작";
+            editBtn.innerText = isEditable ? "배치 완료 (저장)" : "편집 모드 시작";
             editBtn.classList.toggle('active', isEditable);
-            
-            if (!isEditable) {
-                console.log("현재 배치 데이터:", getBoardData());
-                alert("배치가 완료되었습니다. (데이터는 콘솔창에서 확인 가능)");
-            }
-        }
-
-        function placeUnit(cell) {
-            if (!isEditable) return;
-            // 예시 아이콘 순환 (🛡️ -> ⚔️ -> 🔥 -> 삭제)
-            const units = ["🛡️", "⚔️", "🔥", "🏰"];
-            const current = cell.innerText;
-            const nextIndex = units.indexOf(current) + 1;
-            
-            if (nextIndex >= units.length) {
-                cell.innerText = ""; // 마지막 순서면 삭제
-            } else {
-                cell.innerText = units[nextIndex];
-            }
-        }
-
-        function removeUnit(cell) {
-            if (!isEditable) return;
-            cell.innerText = ""; // 아이콘 없애기
-        }
-
-        // 현재 보드의 상태를 데이터로 추출 (나중에 공유 기능 만들 때 사용)
-        function getBoardData() {
-            return Array.from(document.querySelectorAll('.cell')).map(c => c.innerText);
         }
     </script>
 </body>
