@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>수묵전략도 (三才)</title>
+    <title>수묵전략도 (명칭 및 수량)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap');
 
         :root {
             --board-bg: #eacda3; 
             --line-color: rgba(42, 35, 28, 0.6);
-            --cell-size: 65px;
+            --cell-size: 85px; /* 입력창을 위해 크기를 조금 키웠습니다 */
             --ink-color: #1a1a1a;
         }
 
@@ -21,18 +21,14 @@
             align-items: center;
             color: #dcdcdc;
             font-family: 'Noto Serif KR', serif;
-            margin: 0;
-            padding: 40px 0;
-            min-height: 100vh;
+            margin: 0; padding: 40px 0;
         }
 
-        h1 { letter-spacing: 15px; font-weight: 400; margin-bottom: 30px; }
-
         .board-container {
-            padding: 30px;
+            padding: 20px;
             background-color: var(--board-bg);
             background-image: url('https://www.transparenttextures.com/patterns/papyrus-dark.png');
-            border: 10px solid #5d4037;
+            border: 8px solid #5d4037;
             box-shadow: 0 20px 60px rgba(0,0,0,0.7);
             position: relative;
         }
@@ -49,70 +45,75 @@
             height: var(--cell-size);
             border: 0.5px solid var(--line-color);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             position: relative;
+            padding: 2px;
+            overflow: hidden;
         }
 
-        .unit {
-            font-size: 35px;
-            color: var(--ink-color);
-            filter: blur(0.4px) contrast(1.2);
-            user-select: none;
-            z-index: 2;
+        /* 칸 내부 요소 스타일 */
+        .cell-name { font-size: 10px; color: #5d4037; font-weight: bold; margin-bottom: 2px; height: 12px; }
+        .unit { font-size: 32px; filter: blur(0.3px); line-height: 1; }
+        .unit-count { 
+            position: absolute; bottom: 2px; right: 4px;
+            font-size: 12px; color: #1a1a1a; font-weight: bold;
+            background: rgba(255,255,255,0.3); border-radius: 50%; width: 18px; height: 18px;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        /* 아이콘 선택 팔레트 (3개 전용) */
+        /* 상세 편집 팔레트 */
         #palette {
-            position: absolute;
-            display: none;
-            background: rgba(234, 205, 163, 0.98);
-            border: 2px solid #5d4037;
-            padding: 15px;
-            grid-template-columns: repeat(4, 1fr); /* 3개 + 지우개 */
-            gap: 15px;
-            z-index: 100;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            border-radius: 8px;
+            position: absolute; display: none;
+            background: rgba(245, 230, 210, 0.98);
+            border: 2px solid #5d4037; padding: 15px;
+            z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            border-radius: 8px; width: 220px;
         }
 
-        .palette-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            cursor: pointer;
-            padding: 5px;
-            transition: transform 0.2s;
-        }
-        
-        .palette-item span { font-size: 32px; }
-        .palette-item label { font-size: 10px; color: #5d4037; margin-top: 5px; cursor: pointer; }
+        .palette-section { margin-bottom: 15px; border-bottom: 1px dotted #ccc; padding-bottom: 10px; }
+        .palette-section:last-child { border-bottom: none; }
+        .palette-title { font-size: 12px; color: #5d4037; margin-bottom: 8px; font-weight: bold; }
 
-        .palette-item:hover { transform: scale(1.1); background: rgba(0,0,0,0.05); }
+        .icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .palette-item { cursor: pointer; text-align: center; font-size: 24px; padding: 5px; }
+        .palette-item:hover { background: rgba(0,0,0,0.05); }
+
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        input[type="text"], input[type="number"] {
+            border: 1px solid #8d6e63; background: #fff; padding: 5px; font-family: inherit;
+        }
 
         .editable .cell { cursor: pointer; }
         .editable .cell:hover { background-color: rgba(0, 0, 0, 0.05); }
 
-        .controls { margin-top: 40px; text-align: center; }
-        .btn {
-            padding: 12px 35px;
-            cursor: pointer;
-            border: 1px solid #8d6e63;
-            background: transparent;
-            color: #eacda3;
-            font-family: 'Noto Serif KR', serif;
-            margin: 5px;
-        }
+        .controls { margin-top: 30px; text-align: center; }
+        .btn { padding: 10px 25px; cursor: pointer; border: 1px solid #8d6e63; background: transparent; color: #eacda3; margin: 5px; font-family: inherit; }
         .btn.active { background: #8d6e63; color: white; }
     </style>
 </head>
 <body>
 
-    <h1>三才圖 (삼재도)</h1>
+    <h1>戰略圖: 兵力配置</h1>
 
     <div class="board-container">
         <div id="board" class="board"></div>
-        <div id="palette"></div>
+        <div id="palette">
+            <div class="palette-section">
+                <div class="palette-title">말 선택</div>
+                <div class="icon-grid" id="iconGrid"></div>
+            </div>
+            <div class="palette-section">
+                <div class="input-group">
+                    <div class="palette-title">칸 이름</div>
+                    <input type="text" id="nameInput" placeholder="이름 입력...">
+                    <div class="palette-title">병력 수</div>
+                    <input type="number" id="countInput" value="1" min="1" max="99">
+                </div>
+            </div>
+            <button class="btn" style="width:100%; color:#1a1a1a; border-color:#1a1a1a;" onclick="applyChanges()">적용</button>
+        </div>
     </div>
 
     <div class="controls">
@@ -127,105 +128,124 @@
         let isEditable = false;
         let selectedCell = null;
 
-        // 아이콘 종류를 3개로 압축
-        const units = [
-            { icon: "🛡️", label: "방패" },
-            { icon: "⚔️", label: "검" },
-            { icon: "🍑", label: "복숭아" }
-        ]; 
+        const units = ["🛡️", "⚔️", "🍑"]; 
 
         function init() {
+            // 보드 10*5 생성
             for (let i = 0; i < 50; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 cell.dataset.index = i;
-                cell.addEventListener('click', (e) => openPalette(e, cell));
-                cell.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    if (isEditable) { cell.innerHTML = ""; updateURL(); }
-                });
+                cell.innerHTML = `<div class="cell-name"></div><div class="unit"></div><div class="unit-count" style="display:none"></div>`;
+                cell.onclick = (e) => openPalette(e, cell);
                 board.appendChild(cell);
             }
 
-            // 팔레트 아이콘 구성
-            units.forEach((u, index) => {
-                const item = document.createElement('div');
-                item.className = 'palette-item';
-                item.innerHTML = `<span>${u.icon}</span><label>${u.label}</label>`;
-                item.onclick = () => selectUnit(u.icon);
-                palette.appendChild(item);
+            // 팔레트 아이콘 목록 생성
+            const iconGrid = document.getElementById('iconGrid');
+            units.forEach(u => {
+                const div = document.createElement('div');
+                div.className = 'palette-item';
+                div.innerText = u;
+                div.onclick = () => {
+                    const unitDiv = selectedCell.querySelector('.unit');
+                    unitDiv.innerText = u;
+                };
+                iconGrid.appendChild(div);
             });
-            
-            // 지우개
+            // 지우기 아이콘
             const eraser = document.createElement('div');
             eraser.className = 'palette-item';
-            eraser.innerHTML = `<span>✖️</span><label>지우기</label>`;
-            eraser.onclick = () => selectUnit("");
-            palette.appendChild(eraser);
+            eraser.innerText = "✖️";
+            eraser.onclick = () => { selectedCell.querySelector('.unit').innerText = ""; };
+            iconGrid.appendChild(eraser);
         }
 
         function openPalette(e, cell) {
             if (!isEditable) return;
             selectedCell = cell;
-            palette.style.display = 'grid';
             
-            // 클릭 위치 근처에 팔레트 배치
+            // 기존 값 불러오기
+            document.getElementById('nameInput').value = cell.querySelector('.cell-name').innerText;
+            const count = cell.querySelector('.unit-count').innerText;
+            document.getElementById('countInput').value = count || 1;
+
+            palette.style.display = 'block';
             const rect = board.getBoundingClientRect();
-            palette.style.left = (e.pageX - window.pageXOffset - rect.left) + 'px';
-            palette.style.top = (e.pageY - window.pageYOffset - rect.top) + 'px';
+            palette.style.left = (e.pageX - window.pageXOffset - rect.left + 10) + 'px';
+            palette.style.top = (e.pageY - window.pageYOffset - rect.top + 10) + 'px';
         }
 
-        function selectUnit(u) {
-            if (selectedCell) {
-                selectedCell.innerHTML = u ? `<span class="unit">${u}</span>` : "";
-                palette.style.display = 'none';
-                updateURL();
-            }
-        }
+        function applyChanges() {
+            if (!selectedCell) return;
+            const name = document.getElementById('nameInput').value;
+            const count = document.getElementById('countInput').value;
+            const unit = selectedCell.querySelector('.unit').innerText;
 
-        window.addEventListener('click', (e) => {
-            if (!e.target.closest('.cell') && !e.target.closest('#palette')) {
-                palette.style.display = 'none';
+            selectedCell.querySelector('.cell-name').innerText = name;
+            const countDiv = selectedCell.querySelector('.unit-count');
+            
+            if (unit && count > 1) {
+                countDiv.innerText = count;
+                countDiv.style.display = 'flex';
+            } else {
+                countDiv.style.display = 'none';
             }
-        });
+
+            palette.style.display = 'none';
+            updateURL();
+        }
 
         function toggleEdit() {
             isEditable = !isEditable;
             board.classList.toggle('editable', isEditable);
             editBtn.innerText = isEditable ? "낙관 찍기 (완료)" : "붓 들기 (편집)";
             editBtn.classList.toggle('active', isEditable);
-            if (!isEditable) palette.style.display = 'none';
         }
 
+        // 데이터 저장 (URL 파라미터 최적화)
         function updateURL() {
             const cells = document.querySelectorAll('.cell');
-            const iconsOnly = units.map(u => u.icon);
-            const data = Array.from(cells).map(cell => {
-                const unit = cell.querySelector('.unit');
-                return unit ? iconsOnly.indexOf(unit.innerText) : '.';
-            }).join('');
-            const newUrl = window.location.origin + window.location.pathname + '?map=' + data;
+            const mapData = Array.from(cells).map(cell => {
+                return {
+                    n: cell.querySelector('.cell-name').innerText,
+                    u: units.indexOf(cell.querySelector('.unit').innerText),
+                    c: cell.querySelector('.unit-count').innerText
+                };
+            });
+            // 데이터를 압축하여 URL에 저장
+            const encoded = btoa(encodeURIComponent(JSON.stringify(mapData)));
+            const newUrl = window.location.origin + window.location.pathname + '?data=' + encoded;
             window.history.replaceState({}, '', newUrl);
         }
 
         function loadBoardFromURL() {
             const params = new URLSearchParams(window.location.search);
-            const mapData = params.get('map');
-            const iconsOnly = units.map(u => u.icon);
-            if (mapData) {
-                const cells = document.querySelectorAll('.cell');
-                mapData.split('').forEach((char, i) => {
-                    if (char !== '.' && iconsOnly[char]) {
-                        cells[i].innerHTML = `<span class="unit">${iconsOnly[char]}</span>`;
-                    }
-                });
+            const encoded = params.get('data');
+            if (encoded) {
+                try {
+                    const mapData = JSON.parse(decodeURIComponent(atob(encoded)));
+                    const cells = document.querySelectorAll('.cell');
+                    mapData.forEach((data, i) => {
+                        if (cells[i]) {
+                            cells[i].querySelector('.cell-name').innerText = data.n || "";
+                            if (data.u !== -1) {
+                                cells[i].querySelector('.unit').innerText = units[data.u];
+                                if (data.c) {
+                                    cells[i].querySelector('.unit-count').innerText = data.c;
+                                    cells[i].querySelector('.unit-count').style.display = 'flex';
+                                }
+                            }
+                        }
+                    });
+                } catch(e) { console.error("데이터 로드 실패"); }
             }
         }
 
         function copyShareLink() {
             updateURL();
             navigator.clipboard.writeText(window.location.href);
-            alert("공유 링크가 클립보드에 복사되었습니다!");
+            alert("공유 링크가 복사되었습니다!");
         }
 
         init();
