@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>수묵전략도 (명칭 및 수량)</title>
+    <title>수묵전략도 v3 (U자형)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap');
 
         :root {
             --board-bg: #eacda3; 
             --line-color: rgba(42, 35, 28, 0.6);
-            --cell-size: 85px; /* 입력창을 위해 크기를 조금 키웠습니다 */
+            --cell-size: 100px; /* 정보를 위해 살짝 더 키웠습니다 */
             --ink-color: #1a1a1a;
         }
 
@@ -21,85 +21,125 @@
             align-items: center;
             color: #dcdcdc;
             font-family: 'Noto Serif KR', serif;
-            margin: 0; padding: 40px 0;
+            margin: 0; padding: 20px 0;
+            min-height: 100vh;
         }
 
+        h1 { letter-spacing: 15px; font-weight: 400; margin-bottom: 20px; text-shadow: 0 0 10px rgba(255,255,255,0.1); }
+
+        /* 한지 질감 및 두꺼운 프레임 */
         .board-container {
             padding: 20px;
             background-color: var(--board-bg);
             background-image: url('https://www.transparenttextures.com/patterns/papyrus-dark.png');
-            border: 8px solid #5d4037;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+            border: 10px solid #5d4037;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+            border-radius: 4px;
             position: relative;
         }
 
+        /* U자형 배치 (Grid) */
         .board {
             display: grid;
-            grid-template-columns: repeat(10, var(--cell-size));
-            grid-template-rows: repeat(5, var(--cell-size));
+            grid-template-columns: repeat(3, var(--cell-size));
+            grid-template-rows: repeat(3, var(--cell-size));
+            gap: 1px; /* 칸 사이 가는 선 */
             border: 1px solid var(--line-color);
         }
 
+        /* 각 칸의 위치 정의 */
         .cell {
-            width: var(--cell-size);
-            height: var(--cell-size);
             border: 0.5px solid var(--line-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            padding: 2px;
-            overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; padding: 5px; box-sizing: border-box;
+            background: rgba(255,255,255,0.1); /* 미세한 칸 구분 */
         }
 
-        /* 칸 내부 요소 스타일 */
-        .cell-name { font-size: 10px; color: #5d4037; font-weight: bold; margin-bottom: 2px; height: 12px; }
-        .unit { font-size: 32px; filter: blur(0.3px); line-height: 1; }
-        .unit-count { 
-            position: absolute; bottom: 2px; right: 4px;
-            font-size: 12px; color: #1a1a1a; font-weight: bold;
-            background: rgba(255,255,255,0.3); border-radius: 50%; width: 18px; height: 18px;
+        /* 제공해주신 이미지에 맞춘 칸 배치 */
+        .cell[data-pos="1"] { grid-column: 1; grid-row: 1; }
+        .cell[data-pos="2"] { grid-column: 2; grid-row: 1; }
+        .cell[data-pos="3"] { grid-column: 3; grid-row: 1; }
+        .cell[data-pos="4"] { grid-column: 1; grid-row: 2; }
+        .cell[data-pos="5"] { grid-column: 3; grid-row: 2; }
+        .cell[data-pos="6"] { grid-column: 1; grid-row: 3; }
+        .cell[data-pos="7"] { grid-column: 2; grid-row: 3; }
+        .cell[data-pos="8"] { grid-column: 3; grid-row: 3; }
+
+        /* 중앙 빈 공간 (제공 이미지의 사각형) */
+        .center-space {
+            grid-column: 2; grid-row: 2;
+            border: 2px solid #5d4037;
             display: flex; align-items: center; justify-content: center;
+            background: rgba(42, 35, 28, 0.1);
+            color: #5d4037; font-size: 14px; font-weight: bold;
+            text-align: center; font-style: italic;
         }
 
-        /* 상세 편집 팔레트 */
-        #palette {
-            position: absolute; display: none;
+        /* 칸 내부 요소 스타일 (v2 동일) */
+        .cell-name { font-size: 11px; color: #5d4037; font-weight: bold; margin-bottom: 2px; height: 14px; }
+        .unit { font-size: 40px; filter: blur(0.4px); line-height: 1; }
+        .unit-count { 
+            position: absolute; bottom: 3px; right: 5px;
+            font-size: 13px; color: white; font-weight: bold;
+            background: rgba(42, 35, 28, 0.8); border-radius: 50%; width: 20px; height: 20px;
+            display: flex; align-items: center; justify-content: center; z-index: 3;
+        }
+
+        /* 편집 팔레트 모달 */
+        #paletteModal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(245, 230, 210, 0.98);
-            border: 2px solid #5d4037; padding: 15px;
-            z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            border-radius: 8px; width: 220px;
+            border: 3px solid #5d4037; padding: 25px;
+            z-index: 200; box-shadow: 0 20px 80px rgba(0,0,0,0.7);
+            border-radius: 10px; width: 280px; display: none;
         }
 
-        .palette-section { margin-bottom: 15px; border-bottom: 1px dotted #ccc; padding-bottom: 10px; }
-        .palette-section:last-child { border-bottom: none; }
-        .palette-title { font-size: 12px; color: #5d4037; margin-bottom: 8px; font-weight: bold; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 150; display: none;
+        }
 
-        .icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .palette-item { cursor: pointer; text-align: center; font-size: 24px; padding: 5px; }
-        .palette-item:hover { background: rgba(0,0,0,0.05); }
+        .palette-section { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dotted #ccc; }
+        .palette-title { font-size: 14px; color: #5d4037; margin-bottom: 10px; font-weight: bold; }
 
-        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        .icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        .palette-item { cursor: pointer; text-align: center; font-size: 30px; padding: 5px; }
+        .palette-item:hover { transform: scale(1.1); background: rgba(0,0,0,0.05); }
+
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
         input[type="text"], input[type="number"] {
-            border: 1px solid #8d6e63; background: #fff; padding: 5px; font-family: inherit;
+            border: 1px solid #8d6e63; background: #fff; padding: 8px; font-family: inherit; font-size: 14px;
         }
 
         .editable .cell { cursor: pointer; }
         .editable .cell:hover { background-color: rgba(0, 0, 0, 0.05); }
 
-        .controls { margin-top: 30px; text-align: center; }
-        .btn { padding: 10px 25px; cursor: pointer; border: 1px solid #8d6e63; background: transparent; color: #eacda3; margin: 5px; font-family: inherit; }
-        .btn.active { background: #8d6e63; color: white; }
+        .controls { margin-top: 40px; text-align: center; }
+        .btn { padding: 12px 30px; cursor: pointer; border: 1px solid #8d6e63; background: transparent; color: #eacda3; margin: 5px; font-family: inherit; font-size: 16px; }
+        .btn.active { background: #8d6e63; color: white; border-color: #8d6e63; }
     </style>
 </head>
 <body>
 
-    <h1>戰略圖: 兵力配置</h1>
+    <h1>戰術圖: 八方陣</h1>
 
     <div class="board-container">
-        <div id="board" class="board"></div>
-        <div id="palette">
+        <div id="board" class="board">
+            <div class="cell" data-pos="1"></div>
+            <div class="cell" data-pos="2"></div>
+            <div class="cell" data-pos="3"></div>
+            <div class="cell" data-pos="4"></div>
+            <div class="center-space">
+                <span>전략 중앙<br>(戰術中央)</span>
+            </div>
+            <div class="cell" data-pos="5"></div>
+            <div class="cell" data-pos="6"></div>
+            <div class="cell" data-pos="7"></div>
+            <div class="cell" data-pos="8"></div>
+        </div>
+
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div id="paletteModal">
             <div class="palette-section">
                 <div class="palette-title">말 선택</div>
                 <div class="icon-grid" id="iconGrid"></div>
@@ -123,7 +163,8 @@
 
     <script>
         const board = document.getElementById('board');
-        const palette = document.getElementById('palette');
+        const modal = document.getElementById('paletteModal');
+        const overlay = document.getElementById('modalOverlay');
         const editBtn = document.getElementById('editBtn');
         let isEditable = false;
         let selectedCell = null;
@@ -131,25 +172,25 @@
         const units = ["🛡️", "⚔️", "🍑"]; 
 
         function init() {
-            // 보드 10*5 생성
-            for (let i = 0; i < 50; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.dataset.index = i;
+            // 보드의 칸 초기화 및 이벤트 연결
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
                 cell.innerHTML = `<div class="cell-name"></div><div class="unit"></div><div class="unit-count" style="display:none"></div>`;
-                cell.onclick = (e) => openPalette(e, cell);
-                board.appendChild(cell);
-            }
+                cell.onclick = (e) => openPalette(cell);
+                cell.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (isEditable) { cell.querySelector('.cell-name').innerText = ""; cell.querySelector('.unit').innerText = ""; cell.querySelector('.unit-count').style.display="none"; updateURL(); }
+                });
+            });
 
-            // 팔레트 아이콘 목록 생성
+            // 팔레트 아이콘 목록 생성 (모달 전용)
             const iconGrid = document.getElementById('iconGrid');
             units.forEach(u => {
                 const div = document.createElement('div');
                 div.className = 'palette-item';
                 div.innerText = u;
                 div.onclick = () => {
-                    const unitDiv = selectedCell.querySelector('.unit');
-                    unitDiv.innerText = u;
+                    selectedCell.querySelector('.unit').innerText = u;
                 };
                 iconGrid.appendChild(div);
             });
@@ -159,9 +200,12 @@
             eraser.innerText = "✖️";
             eraser.onclick = () => { selectedCell.querySelector('.unit').innerText = ""; };
             iconGrid.appendChild(eraser);
+
+            // 오버레이 클릭 시 모달 닫기
+            overlay.onclick = closePalette;
         }
 
-        function openPalette(e, cell) {
+        function openPalette(cell) {
             if (!isEditable) return;
             selectedCell = cell;
             
@@ -170,10 +214,14 @@
             const count = cell.querySelector('.unit-count').innerText;
             document.getElementById('countInput').value = count || 1;
 
-            palette.style.display = 'block';
-            const rect = board.getBoundingClientRect();
-            palette.style.left = (e.pageX - window.pageXOffset - rect.left + 10) + 'px';
-            palette.style.top = (e.pageY - window.pageYOffset - rect.top + 10) + 'px';
+            modal.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function closePalette() {
+            modal.style.display = 'none';
+            overlay.style.display = 'none';
+            selectedCell = null;
         }
 
         function applyChanges() {
@@ -192,7 +240,7 @@
                 countDiv.style.display = 'none';
             }
 
-            palette.style.display = 'none';
+            closePalette();
             updateURL();
         }
 
@@ -201,19 +249,20 @@
             board.classList.toggle('editable', isEditable);
             editBtn.innerText = isEditable ? "낙관 찍기 (완료)" : "붓 들기 (편집)";
             editBtn.classList.toggle('active', isEditable);
+            if (!isEditable) closePalette();
         }
 
-        // 데이터 저장 (URL 파라미터 최적화)
+        // 데이터 저장 (Base64 인코딩)
         function updateURL() {
             const cells = document.querySelectorAll('.cell');
             const mapData = Array.from(cells).map(cell => {
                 return {
+                    pos: cell.dataset.pos, // 위치 정보 추가
                     n: cell.querySelector('.cell-name').innerText,
                     u: units.indexOf(cell.querySelector('.unit').innerText),
                     c: cell.querySelector('.unit-count').innerText
                 };
             });
-            // 데이터를 압축하여 URL에 저장
             const encoded = btoa(encodeURIComponent(JSON.stringify(mapData)));
             const newUrl = window.location.origin + window.location.pathname + '?data=' + encoded;
             window.history.replaceState({}, '', newUrl);
@@ -225,15 +274,15 @@
             if (encoded) {
                 try {
                     const mapData = JSON.parse(decodeURIComponent(atob(encoded)));
-                    const cells = document.querySelectorAll('.cell');
-                    mapData.forEach((data, i) => {
-                        if (cells[i]) {
-                            cells[i].querySelector('.cell-name').innerText = data.n || "";
+                    mapData.forEach(data => {
+                        const cell = board.querySelector(`.cell[data-pos="${data.pos}"]`);
+                        if (cell) {
+                            cell.querySelector('.cell-name').innerText = data.n || "";
                             if (data.u !== -1) {
-                                cells[i].querySelector('.unit').innerText = units[data.u];
-                                if (data.c) {
-                                    cells[i].querySelector('.unit-count').innerText = data.c;
-                                    cells[i].querySelector('.unit-count').style.display = 'flex';
+                                cell.querySelector('.unit').innerText = units[data.u];
+                                if (data.c && cells[i]) {
+                                    cell.querySelector('.unit-count').innerText = data.c;
+                                    cell.querySelector('.unit-count').style.display = 'flex';
                                 }
                             }
                         }
